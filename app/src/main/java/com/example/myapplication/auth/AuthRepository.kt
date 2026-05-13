@@ -71,14 +71,19 @@ object AuthRepository {
             else -> e.localizedMessage ?: "Sign-in failed."
         }
 
-    fun parseFirebaseAuthError(e: Exception): String = when (e) {
-        is FirebaseAuthInvalidUserException ->
-            "No account found with that email."
-        is FirebaseAuthInvalidCredentialsException ->
-            "Wrong password or expired link."
-        is FirebaseTooManyRequestsException ->
-            "Too many attempts. Try again in a minute."
-        else -> e.localizedMessage ?: "Something went wrong."
+    fun parseFirebaseAuthError(e: Exception): String {
+        val msg = e.localizedMessage ?: ""
+        return when {
+            msg.contains("BILLING_NOT_ENABLED") ->
+                "Phone login failed. Please enable billing (Blaze plan) in Firebase Console."
+            e is FirebaseAuthInvalidUserException ->
+                "No account found with that email."
+            e is FirebaseAuthInvalidCredentialsException ->
+                "Wrong password or expired link."
+            e is FirebaseTooManyRequestsException ->
+                "Too many attempts. Try again in a minute."
+            else -> e.localizedMessage ?: "Something went wrong."
+        }
     }
 
     /** Starts SMS verification; [callbacks] receives verification id for OTP step. */

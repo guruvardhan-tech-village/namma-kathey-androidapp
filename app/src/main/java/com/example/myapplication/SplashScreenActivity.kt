@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -117,10 +118,11 @@ private fun SplashIntro(onFinished: () -> Unit) {
         ) {
             Spacer(modifier = Modifier.weight(0.42f))
             Image(
-                painter = painterResource(R.drawable.ic_launcher_foreground),
+                painter = painterResource(R.drawable.ic_launcher_foreground_art),
                 contentDescription = stringResource(R.string.app_name),
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size(160.dp)
+                    .size(220.dp)
                     .scale(logoScale),
             )
             Spacer(modifier = Modifier.height(24.dp))

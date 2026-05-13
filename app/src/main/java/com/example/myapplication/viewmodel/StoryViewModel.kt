@@ -115,7 +115,8 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
             AppPrefs.KEY_LANGUAGE_CODE,
             if (_currentLanguage.value == Language.EN) AppPrefs.LANG_EN else AppPrefs.LANG_KN,
         ).apply()
-        AppIconAliasManager.applyForLanguage(getApplication(), _currentLanguage.value)
+        // Removed immediate icon alias swap to prevent app from closing.
+        // The icon will sync on next cold start.
     }
 
     fun signOutToAuth(activity: Activity) {

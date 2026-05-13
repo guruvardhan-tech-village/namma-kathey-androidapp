@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -76,11 +77,16 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(currentLanguage) {
                 val locale = when (currentLanguage) {
                     AppLanguage.EN -> Locale.ENGLISH
-                    AppLanguage.KN -> Locale("kn")
+                    AppLanguage.KN -> Locale("kn", "IN")
                 }
-                val config = context.resources.configuration
-                config.setLocale(locale)
-                context.resources.updateConfiguration(config, context.resources.displayMetrics)
+                val currentLocale = context.resources.configuration.locales[0]
+                if (currentLocale.language != locale.language) {
+                    val config = Configuration(context.resources.configuration)
+                    config.setLocale(locale)
+                    Locale.setDefault(locale)
+                    context.resources.updateConfiguration(config, context.resources.displayMetrics)
+                    recreate()
+                }
             }
 
             MyApplicationTheme {

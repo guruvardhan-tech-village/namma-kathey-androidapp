@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -108,18 +109,22 @@ class AuthActivity : ComponentActivity() {
             val androidCtx = LocalContext.current
 
             LaunchedEffect(language) {
-                prefsUi.edit().putString(
-                    AppPrefs.KEY_LANGUAGE_CODE,
-                    if (language == Language.EN) AppPrefs.LANG_EN else AppPrefs.LANG_KN,
-                ).apply()
-                AppIconAliasManager.applyForLanguage(applicationContext, language)
-                val locale = when (language) {
-                    Language.EN -> Locale.ENGLISH
-                    Language.KN -> Locale("kn", "IN")
+                val currentSaved = prefsUi.getString(AppPrefs.KEY_LANGUAGE_CODE, AppPrefs.LANG_EN)
+                val target = if (language == Language.EN) AppPrefs.LANG_EN else AppPrefs.LANG_KN
+                
+                if (currentSaved != target) {
+                    prefsUi.edit().putString(AppPrefs.KEY_LANGUAGE_CODE, target).apply()
+                    // Icon sync is deferred to SplashScreen to prevent immediate app closing
+                    
+                    val locale = if (language == Language.EN) Locale.ENGLISH else Locale("kn", "IN")
+                    Locale.setDefault(locale)
+                    val cfg = Configuration(androidCtx.resources.configuration)
+                    cfg.setLocale(locale)
+                    androidCtx.createConfigurationContext(cfg)
+                    
+                    // We need to restart activity to apply the new strings from XML resources properly
+                    recreate()
                 }
-                val cfg = Configuration(androidCtx.resources.configuration)
-                cfg.setLocale(locale)
-                androidCtx.resources.updateConfiguration(cfg, androidCtx.resources.displayMetrics)
             }
 
             DisposableEffect(Unit) {
@@ -208,9 +213,12 @@ private fun AuthBody(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
             Image(
-                painter = painterResource(R.drawable.ic_launcher_foreground),
+                painter = painterResource(R.drawable.ic_launcher_foreground_art),
                 contentDescription = null,
-                modifier = Modifier.height(100.dp),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth(0.55f)
+                    .height(120.dp),
             )
             Text(
                 text = stringResource(R.string.auth_welcome_title),
@@ -244,6 +252,9 @@ private fun AuthBody(
                 AuthViewModel.Route.Register -> RegisterContent(
                     busy = busy,
                     vm = vm,
+                    googleLauncher = googleLauncher,
+                    googleConfigured = googleOk,
+                    onNavigatePhone = { vm.navigate(AuthViewModel.Route.PhoneEnter) },
                     onBack = { vm.navigate(AuthViewModel.Route.Login) },
                 )
 
@@ -361,8 +372,12 @@ private fun LoginContent(
 private fun RegisterContent(
     busy: Boolean,
     vm: AuthViewModel,
+    googleLauncher: () -> Unit,
+    googleConfigured: Boolean,
+    onNavigatePhone: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val ctx = LocalContext.current
     var email by remember { mutableStateOf("") }
     var p1 by remember { mutableStateOf("") }
     var p2 by remember { mutableStateOf("") }
@@ -383,6 +398,35 @@ private fun RegisterContent(
 
     BigPrimary(stringResource(R.string.auth_create_account), busy) {
         vm.registerEmailPassword(email, p1, p2)
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Text(
+        text = "Or register with",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            BigTonal(stringResource(R.string.auth_phone_continue), busy, onNavigatePhone)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            BigOutlined(
+                label = stringResource(R.string.auth_google_button),
+                enabled = !busy,
+            ) {
+                if (googleConfigured) {
+                    googleLauncher()
+                } else {
+                    vm.showMessage(ctx.getString(R.string.google_needs_web_client))
+                }
+            }
+        }
     }
 
     TextButton(onClick = onBack, enabled = !busy) {
